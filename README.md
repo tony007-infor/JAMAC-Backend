@@ -1,58 +1,101 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Phoenix-Orders - Sistema de Pedidos (VILT Stack)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Este es un sistema completo de gestión de clientes, productos y pedidos desarrollado bajo el ecosistema **VILT** (Laravel 11, Vue 3, Inertia.js y Tailwind CSS) utilizando **PostgreSQL** como base de datos con restricciones estrictas de integridad y bloqueos de concurrencia. La moneda predeterminada es Bolivianos (`Bs.`).
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 Requisitos del Sistema
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Antes de iniciar el proyecto, asegúrate de tener instalado lo siguiente en tu sistema:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+*   **PHP:** Versión `^8.3` (con la extensión `pdo_pgsql` habilitada).
+*   **Composer:** Versión `^2.0` (gestor de dependencias de PHP).
+*   **Node.js:** Versión `^20.0` o superior (junto con `npm`).
+*   **PostgreSQL:** Versión `^15` o superior.
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🚀 Guía de Instalación y Configuración
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Sigue estos pasos detallados para instalar y poner a correr el proyecto en tu entorno local:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+### 1. Instalar Dependencias del Backend
+En la raíz del proyecto, ejecuta el siguiente comando para descargar e instalar todas las dependencias de PHP:
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Instalar Dependencias del Frontend
+Instala todos los paquetes de JavaScript necesarios para Vue 3 y Tailwind CSS:
+```bash
+npm install
+```
 
-## Contributing
+### 3. Configurar el Archivo de Entorno (`.env`)
+Crea una copia del archivo de configuración inicial `.env.example` y nómbrala `.env`:
+```bash
+cp .env.example .env
+```
+Abre el archivo `.env` recién creado en tu editor de texto y configura las variables de conexión a tu base de datos **PostgreSQL**:
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=nombre_de_tu_base_de_datos
+DB_USERNAME=tu_usuario_postgres
+DB_PASSWORD=tu_contraseña_postgres
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 4. Generar la Clave de Aplicación (Application Key)
+Genera la clave de encriptación única de Laravel:
+```bash
+php artisan key:generate
+```
 
-## Code of Conduct
+### 5. Ejecutar las Migraciones de la Base de Datos
+Crea las tablas en PostgreSQL, incluyendo las claves primarias/foráneas en formato UUID y las restricciones CHECK a nivel de base de datos (`price > 0`, `stock >= 0`, etc.):
+```bash
+php artisan migrate
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## ⚙️ Cómo Ejecutar la Aplicación en Local
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Una vez completada la instalación, abre dos terminales diferentes para correr los servidores de desarrollo de backend y frontend:
 
-## License
+### Terminal 1: Iniciar el Servidor Laravel (Backend)
+Inicia el servidor local de desarrollo de PHP:
+```bash
+php artisan serve
+```
+El backend estará disponible en: [http://localhost:8000](http://localhost:8000)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Terminal 2: Iniciar el Compilador Vite (Frontend)
+Inicia el compilador en tiempo real de Vite para actualizar tus componentes de Vue:
+```bash
+npm run dev
+```
+
+---
+
+## 🧪 Ejecutar las Pruebas Automatizadas
+
+El proyecto incluye un conjunto de pruebas unitarias y de integración para asegurar que la lógica de transacciones, bloqueos de concurrencia y cálculos de precios funcionen correctamente.
+
+Para ejecutar los tests, corre el siguiente comando en tu terminal:
+```bash
+./vendor/bin/phpunit tests/Feature/OrderCreationTest.php
+```
+
+---
+
+## ✨ Características Clave Implementadas
+
+1.  **Integridad en Base de Datos (UUIDs):** Todas las tablas utilizan identificadores UUID en lugar de enteros autoincrementales, aumentando la seguridad y escalabilidad del sistema.
+2.  **Validación y Seguridad del Backend:**
+    *   Los precios y totales de venta se recalculan estrictamente en el backend consultando la base de datos, ignorando los valores que se envíen desde el cliente/navegador.
+    *   Bloqueos de fila de base de datos (`lockForUpdate`) para evitar condiciones de carrera al descontar stock simultáneamente en compras concurrentes.
+    *   Transacciones atómicas (`DB::transaction`) que hacen rollback completo si falla la validación de stock de algún producto.
+3.  **Baja Lógica (Soft Deletes):** Clientes y productos implementan la eliminación lógica para evitar pérdida de registros históricos en pedidos facturados.
+4.  **UI Interactiva (Vue 3 + Inertia):** Diseñado con Tailwind CSS y Vue 3 Composition API (`<script setup>`), incluyendo un carrito de compras dinámico y avisos de stock.
