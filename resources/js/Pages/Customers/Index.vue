@@ -1,8 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { Head, useForm, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Modal from '@/Components/Modal.vue';
 
 const props = defineProps({
     customers: Object,
@@ -22,56 +21,9 @@ watch(search, (value) => {
     }, 300);
 });
 
-// Modal state & Form handling
-const isModalOpen = ref(false);
-const isEditing = ref(false);
-const editingCustomer = ref(null);
-
-const form = useForm({
-    full_name: '',
-    email: '',
-    phone: '',
-    is_active: true,
-});
-
-const openCreateModal = () => {
-    isEditing.value = false;
-    editingCustomer.value = null;
-    form.reset();
-    form.clearErrors();
-    isModalOpen.value = true;
-};
-
-const openEditModal = (customer) => {
-    isEditing.value = true;
-    editingCustomer.value = customer;
-    form.clearErrors();
-    form.full_name = customer.full_name;
-    form.email = customer.email;
-    form.phone = customer.phone || '';
-    form.is_active = customer.is_active;
-    isModalOpen.value = true;
-};
-
-const closeModal = () => {
-    isModalOpen.value = false;
-    form.reset();
-};
-
-const submitForm = () => {
-    if (isEditing.value) {
-        form.put(route('customers.update', editingCustomer.value.id), {
-            onSuccess: () => closeModal(),
-        });
-    } else {
-        form.post(route('customers.store'), {
-            onSuccess: () => closeModal(),
-        });
-    }
-};
-
+// Logical Delete (Soft Delete) with Confirm Check
 const deleteCustomer = (customer) => {
-    if (confirm(`¿Estás seguro de que deseas eliminar al cliente "${customer.full_name}"?`)) {
+    if (confirm(`¿Estás seguro de que deseas desactivar/eliminar lógicamente al cliente "${customer.full_name}"?`)) {
         router.delete(route('customers.destroy', customer.id));
     }
 };
@@ -105,15 +57,15 @@ const deleteCustomer = (customer) => {
                                 class="w-full rounded-md border-gray-300 pl-10 pr-4 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             />
                         </div>
-                        <button
-                            @click="openCreateModal"
+                        <Link
+                            :href="route('customers.create')"
                             class="inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto transition-all"
                         >
                             <svg class="-ml-0.5 mr-1.5 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
                             Nuevo Cliente
-                        </button>
+                        </Link>
                     </div>
 
                     <!-- Customers Table -->
@@ -161,12 +113,12 @@ const deleteCustomer = (customer) => {
                                         {{ new Date(customer.created_at).toLocaleDateString() }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-right">
-                                        <button
-                                            @click="openEditModal(customer)"
+                                        <Link
+                                            :href="route('customers.edit', customer.id)"
                                             class="text-indigo-600 hover:text-indigo-900 font-semibold mr-3 transition"
                                         >
                                             Editar
-                                        </button>
+                                        </Link>
                                         <button
                                             @click="deleteCustomer(customer)"
                                             class="text-rose-600 hover:text-rose-900 font-semibold transition"
@@ -216,90 +168,5 @@ const deleteCustomer = (customer) => {
                 </div>
             </div>
         </div>
-
-        <!-- Form Modal -->
-        <Modal :show="isModalOpen" @close="closeModal">
-            <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    {{ isEditing ? 'Editar Cliente' : 'Nuevo Cliente' }}
-                </h3>
-                <form @submit.prevent="submitForm">
-                    <div class="space-y-4">
-                        <div>
-                            <label for="full_name" class="block text-sm font-medium text-gray-700">Nombre Completo</label>
-                            <input
-                                v-model="form.full_name"
-                                id="full_name"
-                                type="text"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                required
-                            />
-                            <div v-if="form.errors.full_name" class="text-sm text-rose-600 mt-1">
-                                {{ form.errors.full_name }}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-                            <input
-                                v-model="form.email"
-                                id="email"
-                                type="email"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                required
-                            />
-                            <div v-if="form.errors.email" class="text-sm text-rose-600 mt-1">
-                                {{ form.errors.email }}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono (Opcional)</label>
-                            <input
-                                v-model="form.phone"
-                                id="phone"
-                                type="text"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                            <div v-if="form.errors.phone" class="text-sm text-rose-600 mt-1">
-                                {{ form.errors.phone }}
-                            </div>
-                        </div>
-
-                        <div class="flex items-center">
-                            <input
-                                v-model="form.is_active"
-                                id="is_active"
-                                type="checkbox"
-                                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <label for="is_active" class="ml-2 block text-sm font-medium text-gray-900">
-                                Cliente Activo
-                            </label>
-                            <div v-if="form.errors.is_active" class="text-sm text-rose-600 mt-1">
-                                {{ form.errors.is_active }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
-                        <button
-                            type="button"
-                            @click="closeModal"
-                            class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition"
-                        >
-                            {{ form.processing ? 'Guardando...' : 'Guardar' }}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </Modal>
     </AuthenticatedLayout>
 </template>

@@ -34,6 +34,14 @@ class ProductController extends Controller
     }
 
     /**
+     * Show the form for creating a new resource.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('Products/Create');
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(StoreProductRequest $request): RedirectResponse
@@ -45,8 +53,19 @@ class ProductController extends Controller
     }
 
     /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Product $product): Response
+    {
+        return Inertia::render('Products/Edit', [
+            'product' => $product,
+        ]);
+    }
+
+    /**
      * Update the specified resource in storage.
      */
+
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
         $this->productService->update($product, $request->validated());
