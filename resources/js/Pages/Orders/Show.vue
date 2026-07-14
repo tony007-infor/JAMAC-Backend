@@ -83,7 +83,7 @@ const getStatusLabel = (status) => {
                             </div>
 
                             <div class="text-gray-500">Total Facturado:</div>
-                            <div class="font-bold text-lg text-gray-900">${{ parseFloat(order.total).toFixed(2) }}</div>
+                            <div class="font-bold text-lg text-gray-900">Bs. {{ parseFloat(order.total).toFixed(2) }}</div>
                         </div>
                     </div>
 
@@ -150,10 +150,10 @@ const getStatusLabel = (status) => {
                                         {{ item.quantity }}
                                     </td>
                                     <td class="px-6 py-4 text-right text-gray-500 font-mono">
-                                        ${{ parseFloat(item.unit_price).toFixed(2) }}
+                                        Bs. {{ parseFloat(item.unit_price).toFixed(2) }}
                                     </td>
                                     <td class="px-6 py-4 text-right font-bold text-gray-900 font-mono">
-                                        ${{ parseFloat(item.sub_total).toFixed(2) }}
+                                        Bs. {{ parseFloat(item.sub_total).toFixed(2) }}
                                     </td>
                                 </tr>
                                 <!-- Final Summary Row -->
@@ -162,7 +162,7 @@ const getStatusLabel = (status) => {
                                         Total del Pedido:
                                     </td>
                                     <td class="px-6 py-4 text-right font-black text-indigo-600 text-lg font-mono">
-                                        ${{ parseFloat(order.total).toFixed(2) }}
+                                        Bs. {{ parseFloat(order.total).toFixed(2) }}
                                     </td>
                                 </tr>
                             </tbody>

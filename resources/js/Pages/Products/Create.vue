@@ -73,7 +73,7 @@ const submitForm = () => {
                             <!-- Price and Stock Inputs in Grid -->
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
-                                    <label for="price" class="block text-sm font-medium text-gray-700">Precio ($)</label>
+                                    <label for="price" class="block text-sm font-medium text-gray-700">Precio (Bs.)</label>
                                     <input
                                         v-model="form.price"
                                         id="price"

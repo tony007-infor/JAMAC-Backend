@@ -96,7 +96,7 @@ const deleteProduct = (product) => {
                                         {{ product.description || 'Sin descripción' }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 font-semibold text-gray-900">
-                                        ${{ parseFloat(product.price).toFixed(2) }}
+                                        Bs. {{ parseFloat(product.price).toFixed(2) }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4">
                                         <span

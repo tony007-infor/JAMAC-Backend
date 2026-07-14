@@ -132,7 +132,7 @@ const getStatusLabel = (status) => {
                                         </span>
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 font-bold text-gray-900">
-                                        ${{ parseFloat(order.total).toFixed(2) }}
+                                        Bs. {{ parseFloat(order.total).toFixed(2) }}
                                     </td>
                                     <td class="whitespace-nowrap px-6 py-4 text-right">
                                         <Link

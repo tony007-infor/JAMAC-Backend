@@ -199,7 +199,7 @@ const submitOrder = () => {
                                     <div>
                                         <div class="flex justify-between items-start gap-2">
                                             <h4 class="font-semibold text-gray-900 text-sm leading-tight">{{ product.name }}</h4>
-                                            <span class="text-indigo-600 font-bold text-sm">${{ parseFloat(product.price).toFixed(2) }}</span>
+                                            <span class="text-indigo-600 font-bold text-sm">Bs. {{ parseFloat(product.price).toFixed(2) }}</span>
                                         </div>
                                         <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ product.description || 'Sin descripción' }}</p>
                                     </div>
@@ -256,7 +256,7 @@ const submitOrder = () => {
                                     >
                                         <div class="flex-1 min-w-0 pr-2">
                                             <h4 class="font-medium text-gray-900 text-sm truncate">{{ item.product.name }}</h4>
-                                            <p class="text-xs text-indigo-600 font-semibold">${{ parseFloat(item.product.price).toFixed(2) }} c/u</p>
+                                            <p class="text-xs text-indigo-600 font-semibold">Bs. {{ parseFloat(item.product.price).toFixed(2) }} c/u</p>
                                         </div>
 
                                         <div class="flex items-center gap-3">
@@ -286,7 +286,7 @@ const submitOrder = () => {
 
                                             <div class="text-right w-16">
                                                 <span class="text-sm font-bold text-gray-900 font-mono">
-                                                    ${{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
+                                                    Bs. {{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
                                                 </span>
                                             </div>
 
@@ -309,7 +309,7 @@ const submitOrder = () => {
                             <div class="border-t border-gray-100 pt-4 mt-6 space-y-4">
                                 <div class="flex items-center justify-between text-base font-bold text-gray-900">
                                     <span>Total (Estimado):</span>
-                                    <span class="font-mono text-indigo-600 text-lg">${{ cartTotal.toFixed(2) }}</span>
+                                    <span class="font-mono text-indigo-600 text-lg">Bs. {{ cartTotal.toFixed(2) }}</span>
                                 </div>
 
                                 <div class="bg-gray-50 rounded-md p-3 text-[11px] text-gray-500">
