@@ -70,4 +70,20 @@ class OrderController extends Controller
             'order' => $order,
         ]);
     }
+
+    /**
+     * Update the status of the specified order.
+     */
+    public function update(Request $request, Order $order): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:PENDING,CONFIRMED,DELIVERED,CANCELLED',
+        ]);
+
+        // Aquí se actualiza el estado del pedido
+        $this->orderService->updateStatus($order, $validated['status']);
+
+        return redirect()->back()
+            ->with('success', 'Estado del pedido actualizado a ' . $validated['status']);
+    }
 }

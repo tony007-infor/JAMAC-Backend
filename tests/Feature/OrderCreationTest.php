@@ -167,4 +167,53 @@ class OrderCreationTest extends TestCase
         $response->assertSessionHasErrors(['items']);
         $this->assertDatabaseCount('orders', 0);
     }
+
+    public function test_an_authenticated_user_can_update_order_status()
+    {
+        // Creamos un pedido de prueba
+        $order = Order::create([
+            'customer_id' => $this->customer->id,
+            'total' => 1660.00,
+            'status' => 'PENDING',
+            'order_date' => now(),
+        ]);
+
+        // Intentamos cambiar el estado a CONFIRMED
+        $response = $this->actingAs($this->user)->patch(route('orders.update', $order->id), [
+            'status' => 'CONFIRMED',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('CONFIRMED', $order->fresh()->status);
+    }
+
+    public function test_cancelling_an_order_restores_product_stock()
+    {
+        // Creamos un pedido pendiente en la base de datos
+        $order = Order::create([
+            'customer_id' => $this->customer->id,
+            'total' => 800.00,
+            'status' => 'PENDING',
+            'order_date' => now(),
+        ]);
+
+        // Le asociamos un producto con cantidad 2 (el stock inicial en setUp es 10)
+        $order->items()->create([
+            'product_id' => $this->product1->id,
+            'quantity' => 2,
+            'unit_price' => 400.00,
+            'sub_total' => 800.00,
+        ]);
+
+        // Cancelamos el pedido
+        $response = $this->actingAs($this->user)->patch(route('orders.update', $order->id), [
+            'status' => 'CANCELLED',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('CANCELLED', $order->fresh()->status);
+        
+        // REGLA DE NEGOCIO: El stock debió restaurarse (10 originales + 2 devueltos = 12)
+        $this->assertEquals(12, $this->product1->fresh()->stock);
+    }
 }

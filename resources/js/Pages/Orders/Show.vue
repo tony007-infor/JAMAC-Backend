@@ -1,10 +1,21 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
     order: Object,
 });
+
+const updateStatus = (event) => {
+    const newStatus = event.target.value;
+    
+    // Hace una petición PATCH a la ruta 'orders.update' enviando el nuevo estado
+    router.patch(route('orders.update', props.order.id), {
+        status: newStatus
+    }, {
+        preserveScroll: true // Evita que la pantalla se desplace al recargar los datos
+    });
+};
 
 const getStatusClasses = (status) => {
     switch (status) {
@@ -74,12 +85,17 @@ const getStatusLabel = (status) => {
 
                             <div class="text-gray-500">Estado:</div>
                             <div>
-                                <span
+                                <select
+                                    :value="order.status"
+                                    @change="updateStatus"
+                                    class="inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ring-1 ring-inset border-0 cursor-pointer focus:ring-2 focus:ring-indigo-600 transition"
                                     :class="getStatusClasses(order.status)"
-                                    class="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset"
                                 >
-                                    {{ getStatusLabel(order.status) }}
-                                </span>
+                                    <option value="PENDING" class="bg-white text-gray-900 font-normal">Pendiente</option>
+                                    <option value="CONFIRMED" class="bg-white text-gray-900 font-normal">Confirmado</option>
+                                    <option value="DELIVERED" class="bg-white text-gray-900 font-normal">Entregado</option>
+                                    <option value="CANCELLED" class="bg-white text-gray-900 font-normal">Cancelado</option>
+                                </select>
                             </div>
 
                             <div class="text-gray-500">Total Facturado:</div>

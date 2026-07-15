@@ -34,7 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('products', ProductController::class);
 
     // Orders system
-    Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show']);
+    Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show', 'update']);
 });
 
 require __DIR__.'/auth.php';

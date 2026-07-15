@@ -117,4 +117,26 @@ class OrderService
             return $order;
         });
     }
+
+    /**
+     * Update order status and handle stock restore if cancelled.
+     */
+    public function updateStatus(Order $order, string $status): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $status) {
+            // REGLA DE NEGOCIO: Si el pedido se cancela y no estaba cancelado previamente, devolvemos el stock.
+            if ($status === 'CANCELLED' && $order->status !== 'CANCELLED') {
+                // Cargamos los items si no están cargados
+                $order->load('items.product');
+                
+                foreach ($order->items as $item) {
+                    // Devolvemos la cantidad comprada al stock del producto
+                    $item->product->increment('stock', $item->quantity);
+                }
+            }
+
+            // Actualizamos el estado del pedido
+            $order->update(['status' => $status]);
+        });
+    }
 }
