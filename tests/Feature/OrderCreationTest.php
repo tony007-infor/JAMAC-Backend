@@ -67,8 +67,8 @@ class OrderCreationTest extends TestCase
             ],
         ]);
 
-        $response->assertRedirect(route('orders.index'));
-        $response->assertSessionHas('success', 'Pedido creado con éxito.');
+        $response->assertStatus(201);
+        $response->assertJsonPath('success', true);
 
         // Assert order was written to database
         $this->assertDatabaseCount('orders', 1);
@@ -100,7 +100,7 @@ class OrderCreationTest extends TestCase
             ],
         ]);
 
-        $response->assertRedirect(route('orders.index'));
+        $response->assertStatus(201);
 
         // Backend price should be $800.00, not $10.00
         $order = Order::first();
@@ -128,7 +128,8 @@ class OrderCreationTest extends TestCase
             ],
         ]);
 
-        $response->assertSessionHasErrors(['items']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['items']);
         
         // Assert transaction rolled back (No orders created)
         $this->assertDatabaseCount('orders', 0);
@@ -153,7 +154,8 @@ class OrderCreationTest extends TestCase
             ],
         ]);
 
-        $response->assertSessionHasErrors(['customer_id']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['customer_id']);
         $this->assertDatabaseCount('orders', 0);
     }
 
@@ -164,7 +166,8 @@ class OrderCreationTest extends TestCase
             'items' => [], // Empty items
         ]);
 
-        $response->assertSessionHasErrors(['items']);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['items']);
         $this->assertDatabaseCount('orders', 0);
     }
 
@@ -183,7 +186,7 @@ class OrderCreationTest extends TestCase
             'status' => 'CONFIRMED',
         ]);
 
-        $response->assertRedirect();
+        $response->assertStatus(200);
         $this->assertEquals('CONFIRMED', $order->fresh()->status);
     }
 
@@ -210,10 +213,25 @@ class OrderCreationTest extends TestCase
             'status' => 'CANCELLED',
         ]);
 
-        $response->assertRedirect();
+        $response->assertStatus(200);
         $this->assertEquals('CANCELLED', $order->fresh()->status);
         
         // REGLA DE NEGOCIO: El stock debió restaurarse (10 originales + 2 devueltos = 12)
         $this->assertEquals(12, $this->product1->fresh()->stock);
+    }
+
+    public function test_unauthenticated_requests_are_blocked()
+    {
+        $response = $this->postJson(route('orders.store'), [
+            'customer_id' => $this->customer->id,
+            'items' => [
+                [
+                    'product_id' => $this->product1->id,
+                    'quantity' => 1,
+                ]
+            ]
+        ]);
+
+        $response->assertStatus(401);
     }
 }

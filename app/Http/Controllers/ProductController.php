@@ -7,9 +7,7 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
@@ -20,68 +18,60 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): JsonResponse
     {
         $search = $request->input('search');
         $products = $this->productService->getPaginated($search);
 
-        return Inertia::render('Products/Index', [
-            'products' => $products,
-            'filters' => [
-                'search' => $search,
-            ],
-        ]);
+        return response()->json($products);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Display the specified resource.
      */
-    public function create(): Response
+    public function show(Product $product): JsonResponse
     {
-        return Inertia::render('Products/Create');
+        return response()->json($product);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreProductRequest $request): RedirectResponse
+    public function store(StoreProductRequest $request): JsonResponse
     {
-        $this->productService->create($request->validated());
+        $product = $this->productService->create($request->validated());
 
-        return redirect()->route('products.index')
-            ->with('success', 'Producto creado con éxito.');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Product $product): Response
-    {
-        return Inertia::render('Products/Edit', [
-            'product' => $product,
-        ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Producto creado con éxito.',
+            'data' => $product
+        ], 201);
     }
 
     /**
      * Update the specified resource in storage.
      */
-
-    public function update(UpdateProductRequest $request, Product $product): RedirectResponse
+    public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
-        $this->productService->update($product, $request->validated());
+        $updatedProduct = $this->productService->update($product, $request->validated());
 
-        return redirect()->route('products.index')
-            ->with('success', 'Producto actualizado con éxito.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Producto actualizado con éxito.',
+            'data' => $updatedProduct
+        ]);
     }
 
     /**
      * Remove the specified resource from storage (Soft Delete).
      */
-    public function destroy(Product $product): RedirectResponse
+    public function destroy(Product $product): JsonResponse
     {
         $this->productService->delete($product);
 
-        return redirect()->route('products.index')
-            ->with('success', 'Producto eliminado con éxito (lógicamente).');
+        return response()->json([
+            'success' => true,
+            'message' => 'Producto eliminado con éxito (lógicamente).'
+        ]);
     }
 }

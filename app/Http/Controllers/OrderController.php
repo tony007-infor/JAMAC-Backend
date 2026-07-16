@@ -3,14 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOrderRequest;
-use App\Models\Customer;
 use App\Models\Order;
-use App\Models\Product;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 class OrderController extends Controller
 {
@@ -21,69 +17,55 @@ class OrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): JsonResponse
     {
         $search = $request->input('search');
         $orders = $this->orderService->getPaginated($search);
 
-        return Inertia::render('Orders/Index', [
-            'orders' => $orders,
-            'filters' => [
-                'search' => $search,
-            ],
-        ]);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): Response
-    {
-        $customers = Customer::where('is_active', true)->orderBy('full_name')->get();
-        $products = Product::where('is_active', true)->orderBy('name')->get();
-
-        return Inertia::render('Orders/Create', [
-            'customers' => $customers,
-            'products' => $products,
-        ]);
+        return response()->json($orders);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreOrderRequest $request): RedirectResponse
+    public function store(StoreOrderRequest $request): JsonResponse
     {
-        $this->orderService->createOrder($request->validated());
+        $order = $this->orderService->createOrder($request->validated());
 
-        return redirect()->route('orders.index')
-            ->with('success', 'Pedido creado con éxito.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Pedido creado con éxito.',
+            'data' => $order
+        ], 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Order $order): Response
+    public function show(Order $order): JsonResponse
     {
         $order->load(['customer', 'items.product']);
 
-        return Inertia::render('Orders/Show', [
-            'order' => $order,
-        ]);
+        return response()->json($order);
     }
 
     /**
-     * Update the status of the specified order.
+     * Update the specified resource in storage (status updates).
      */
-    public function update(Request $request, Order $order): RedirectResponse
+    public function update(Request $request, Order $order): JsonResponse
     {
-        $validated = $request->validate([
+        $request->validate([
             'status' => 'required|in:PENDING,CONFIRMED,DELIVERED,CANCELLED',
         ]);
 
-        // Aquí se actualiza el estado del pedido
-        $this->orderService->updateStatus($order, $validated['status']);
+        $this->orderService->updateStatus($order, $request->input('status'));
 
-        return redirect()->back()
-            ->with('success', 'Estado del pedido actualizado a ' . $validated['status']);
+        $updatedOrder = $order->fresh()->load(['customer', 'items.product']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado del pedido actualizado con éxito.',
+            'data' => $updatedOrder
+        ]);
     }
 }
