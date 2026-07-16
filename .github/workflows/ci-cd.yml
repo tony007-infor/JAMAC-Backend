@@ -1,0 +1,106 @@
+name: CI/CD Phoenix Orders
+
+on:
+  push:
+    branches: [ main, tonys, "*/dev" ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build y Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: phoenix_ci_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, gd, zip
+          coverage: none
+
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias PHP
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Instalar dependencias Node
+        run: npm ci
+
+      - name: Compilar frontend (Build)
+        run: npm run build
+
+      - name: Preparar .env para pruebas
+        run: cp .env.example .env
+
+      - name: Generar Application Key
+        run: php artisan key:generate
+
+      - name: Ajustar credenciales de test al contenedor de CI
+        run: |
+          sed -i 's/<env name="DB_DATABASE" value="[^"]*"\/>/<env name="DB_DATABASE" value="phoenix_ci_db"\/>/' phpunit.xml
+          sed -i 's/<env name="DB_USERNAME" value="[^"]*"\/>/<env name="DB_USERNAME" value="postgres"\/>/' phpunit.xml
+          sed -i 's/<env name="DB_PASSWORD" value="[^"]*"\/>/<env name="DB_PASSWORD" value="ci_test_password"\/>/' phpunit.xml
+
+      - name: Ejecutar pruebas automatizadas
+        run: vendor/bin/phpunit
+
+      - name: Empaquetar Artifact
+        run: |
+          mkdir artifact-package
+          cp -r app bootstrap config database public resources routes artisan composer.json composer.lock artifact-package/
+          cd artifact-package && zip -r ../phoenix-orders-build.zip . -x "*.git*"
+
+      - name: Subir Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phoenix-orders-artifact
+          path: phoenix-orders-build.zip
+          retention-days: 14
+
+  deploy-dev:
+    name: Deploy a DEV (simulado)
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar Artifact generado
+        uses: actions/download-artifact@v4
+        with:
+          name: phoenix-orders-artifact
+
+      - name: Simular despliegue a DEV
+        run: |
+          echo "===================================="
+          echo " Desplegando Phoenix-Orders a DEV"
+          echo "===================================="
+          echo "Artifact recibido: phoenix-orders-build.zip"
+          ls -lh phoenix-orders-build.zip
+          echo "Copiando archivos al servidor DEV (simulado)..."
+          sleep 2
+          echo "Reiniciando servicios en DEV (simulado)..."
+          sleep 1
+          echo "✅ Deploy a DEV completado exitosamente"
