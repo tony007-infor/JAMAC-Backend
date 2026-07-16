@@ -7,9 +7,7 @@ use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
 use App\Services\CustomerService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 class CustomerController extends Controller
 {
@@ -20,68 +18,60 @@ class CustomerController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(Request $request): JsonResponse
     {
         $search = $request->input('search');
         $customers = $this->customerService->getPaginated($search);
 
-        return Inertia::render('Customers/Index', [
-            'customers' => $customers,
-            'filters' => [
-                'search' => $search,
-            ],
-        ]);
+        return response()->json($customers);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Display the specified resource.
      */
-    public function create(): Response
+    public function show(Customer $customer): JsonResponse
     {
-        return Inertia::render('Customers/Create');
+        return response()->json($customer);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreCustomerRequest $request): RedirectResponse
+    public function store(StoreCustomerRequest $request): JsonResponse
     {
-        $this->customerService->create($request->validated());
+        $customer = $this->customerService->create($request->validated());
 
-        return redirect()->route('customers.index')
-            ->with('success', 'Cliente creado con éxito.');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Customer $customer): Response
-    {
-        return Inertia::render('Customers/Edit', [
-            'customer' => $customer,
-        ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Cliente creado con éxito.',
+            'data' => $customer
+        ], 201);
     }
 
     /**
      * Update the specified resource in storage.
      */
-
-    public function update(UpdateCustomerRequest $request, Customer $customer): RedirectResponse
+    public function update(UpdateCustomerRequest $request, Customer $customer): JsonResponse
     {
-        $this->customerService->update($customer, $request->validated());
+        $updatedCustomer = $this->customerService->update($customer, $request->validated());
 
-        return redirect()->route('customers.index')
-            ->with('success', 'Cliente actualizado con éxito.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Cliente actualizado con éxito.',
+            'data' => $updatedCustomer
+        ]);
     }
 
     /**
      * Remove the specified resource from storage (Soft Delete).
      */
-    public function destroy(Customer $customer): RedirectResponse
+    public function destroy(Customer $customer): JsonResponse
     {
         $this->customerService->delete($customer);
 
-        return redirect()->route('customers.index')
-            ->with('success', 'Cliente eliminado con éxito (lógicamente).');
+        return response()->json([
+            'success' => true,
+            'message' => 'Cliente eliminado con éxito (lógicamente).'
+        ]);
     }
 }

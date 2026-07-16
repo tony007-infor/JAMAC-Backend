@@ -37,20 +37,8 @@ jobs:
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, gd, zip
           coverage: none
 
-      - name: Configurar Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
       - name: Instalar dependencias PHP
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Instalar dependencias Node
-        run: npm ci
-
-      - name: Compilar frontend (Build)
-        run: npm run build
 
       - name: Preparar .env para pruebas
         run: cp .env.example .env

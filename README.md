@@ -1,101 +1,69 @@
-# Phoenix-Orders - Sistema de Pedidos (VILT Stack)
+# Phoenix Orders - Backend API (Laravel 11)
 
-Este es un sistema completo de gestión de clientes, productos y pedidos desarrollado bajo el ecosistema **VILT** (Laravel 11, Vue 3, Inertia.js y Tailwind CSS) utilizando **PostgreSQL** como base de datos con restricciones estrictas de integridad y bloqueos de concurrencia. La moneda predeterminada es Bolivianos (`Bs.`).
-
----
-
-## 📋 Requisitos del Sistema
-
-Antes de iniciar el proyecto, asegúrate de tener instalado lo siguiente en tu sistema:
-
-*   **PHP:** Versión `^8.3` (con la extensión `pdo_pgsql` habilitada).
-*   **Composer:** Versión `^2.0` (gestor de dependencias de PHP).
-*   **Node.js:** Versión `^20.0` o superior (junto con `npm`).
-*   **PostgreSQL:** Versión `^15` o superior.
+Este es el servidor API del sistema Phoenix Orders, desarrollado con Laravel 11. Se encarga de procesar la lógica de negocio, reglas de stock con bloqueos concurrentes y transacciones seguras en base de datos.
 
 ---
 
-## 🚀 Guía de Instalación y Configuración
+## 🛠️ Requisitos Previos
 
-Sigue estos pasos detallados para instalar y poner a correr el proyecto en tu entorno local:
+Antes de comenzar, asegúrate de tener instalado en tu computadora:
+*   **PHP** (versión 8.2 o superior)
+*   **Composer** (gestor de dependencias de PHP)
+*   **PostgreSQL** (servidor de base de datos)
 
-### 1. Instalar Dependencias del Backend
-En la raíz del proyecto, ejecuta el siguiente comando para descargar e instalar todas las dependencias de PHP:
+---
+
+## 🚀 Pasos para hacerlo funcionar
+
+Abre una terminal dentro de esta carpeta y sigue estos sencillos pasos:
+
+### 1. Instalar dependencias
+Descarga las librerías de PHP necesarias ejecutando:
 ```bash
 composer install
 ```
 
-### 2. Instalar Dependencias del Frontend
-Instala todos los paquetes de JavaScript necesarios para Vue 3 y Tailwind CSS:
-```bash
-npm install
-```
-
-### 3. Configurar el Archivo de Entorno (`.env`)
-Crea una copia del archivo de configuración inicial `.env.example` y nómbrala `.env`:
+### 2. Configurar variables de entorno
+Crea una copia del archivo de configuración inicial `.env.example` y nómbralo `.env`:
 ```bash
 cp .env.example .env
 ```
-Abre el archivo `.env` recién creado en tu editor de texto y configura las variables de conexión a tu base de datos **PostgreSQL**:
+
+### 3. Configurar la Base de Datos
+Abre el archivo `.env` recién creado en tu editor de código y edita los campos de conexión a tu base de datos PostgreSQL local:
 ```env
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
-DB_DATABASE=nombre_de_tu_base_de_datos
-DB_USERNAME=tu_usuario_postgres
-DB_PASSWORD=tu_contraseña_postgres
+DB_DATABASE=Phoenix-Orders   # Asegúrate de crear esta BD en pgAdmin
+DB_USERNAME=postgres         # Tu usuario de PostgreSQL
+DB_PASSWORD=tu_contraseña    # Tu contraseña de PostgreSQL
 ```
 
-### 4. Generar la Clave de Aplicación (Application Key)
+### 4. Generar la clave de la aplicación
 Genera la clave de encriptación única de Laravel:
 ```bash
 php artisan key:generate
 ```
 
-### 5. Ejecutar las Migraciones de la Base de Datos
-Crea las tablas en PostgreSQL, incluyendo las claves primarias/foráneas en formato UUID y las restricciones CHECK a nivel de base de datos (`price > 0`, `stock >= 0`, etc.):
+### 5. Correr Migraciones y Datos de Prueba (Seeders)
+Ejecuta las migraciones para crear las tablas en PostgreSQL e inyecta los productos y el usuario administrador inicial:
 ```bash
-php artisan migrate
+php artisan migrate:fresh --seed
 ```
 
----
-
-## ⚙️ Cómo Ejecutar la Aplicación en Local
-
-Una vez completada la instalación, abre dos terminales diferentes para correr los servidores de desarrollo de backend y frontend:
-
-### Terminal 1: Iniciar el Servidor Laravel (Backend)
-Inicia el servidor local de desarrollo de PHP:
+### 6. Levantar el Servidor de la API
+Arranca el servidor local de Laravel:
 ```bash
 php artisan serve
 ```
-El backend estará disponible en: [http://localhost:8000](http://localhost:8000)
-
-### Terminal 2: Iniciar el Compilador Vite (Frontend)
-Inicia el compilador en tiempo real de Vite para actualizar tus componentes de Vue:
-```bash
-npm run dev
-```
+*(Por defecto, la API correrá en: **`http://localhost:8000`**)*
 
 ---
 
-## 🧪 Ejecutar las Pruebas Automatizadas
-
-El proyecto incluye un conjunto de pruebas unitarias y de integración para asegurar que la lógica de transacciones, bloqueos de concurrencia y cálculos de precios funcionen correctamente.
-
-Para ejecutar los tests, corre el siguiente comando en tu terminal:
+## 🧪 Ejecutar Pruebas Automatizadas (Tests)
+Si quieres verificar que todo el sistema de stock, transacciones y lógica de negocio funciona correctamente, ejecuta el siguiente comando:
 ```bash
-./vendor/bin/phpunit tests/Feature/OrderCreationTest.php
+./vendor/bin/phpunit
 ```
-
----
-
-## ✨ Características Clave Implementadas
-
-1.  **Integridad en Base de Datos (UUIDs):** Todas las tablas utilizan identificadores UUID en lugar de enteros autoincrementales, aumentando la seguridad y escalabilidad del sistema.
-2.  **Validación y Seguridad del Backend:**
-    *   Los precios y totales de venta se recalculan estrictamente en el backend consultando la base de datos, ignorando los valores que se envíen desde el cliente/navegador.
-    *   Bloqueos de fila de base de datos (`lockForUpdate`) para evitar condiciones de carrera al descontar stock simultáneamente en compras concurrentes.
-    *   Transacciones atómicas (`DB::transaction`) que hacen rollback completo si falla la validación de stock de algún producto.
-3.  **Baja Lógica (Soft Deletes):** Clientes y productos implementan la eliminación lógica para evitar pérdida de registros históricos en pedidos facturados.
-4.  **UI Interactiva (Vue 3 + Inertia):** Diseñado con Tailwind CSS y Vue 3 Composition API (`<script setup>`), incluyendo un carrito de compras dinámico y avisos de stock.
+Todos los tests deben marcarse en color verde (Passed).
