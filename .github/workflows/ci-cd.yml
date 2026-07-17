@@ -120,7 +120,7 @@ jobs:
             # Asegura la existencia de la carpeta y los permisos para el usuario ubuntu
             sudo mkdir -p /var/www/backend
             sudo chown -R ubuntu:ubuntu /var/www/backend
-            
+
             # Respalda el .env si ya existía
             if [ -f /var/www/backend/.env ]; then
               cp /var/www/backend/.env /tmp/.env_backup
@@ -128,7 +128,7 @@ jobs:
             else
               echo "No se encontró un archivo .env previo."
             fi
-            
+
             # Limpia los archivos dentro de la carpeta sin borrar la carpeta principal
             # Esto evita el error de permisos de escritura sobre /var/www (padre)
             rm -rf /var/www/backend/*
@@ -159,26 +159,26 @@ jobs:
           script: |
             # Entrar al directorio del proyecto
             cd /var/www/backend
-            
+
             # Restaurar tu archivo .env manual desde el respaldo temporal
             if [ -f /tmp/.env_backup ]; then
               mv /tmp/.env_backup /var/www/backend/.env
               echo "Archivo .env restaurado correctamente en su ubicación."
             fi
-            
+
             # Instalar las librerías optimizadas para producción en el servidor
             if [ -f composer.json ]; then
               composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             fi
-            
+
             # Correr migraciones pendientes en tu base de datos de producción
             php artisan migrate --force
-            
+
             # Limpiar caché de rutas, configuraciones y vistas para recargar cambios
             php artisan optimize:clear
-            
+
             # Ajustar los permisos de escritura necesarios para que Apache/Nginx funcionen
             sudo chown -R www-data:www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
-            
-            echo "✅ ¡Despliegue a Producción completado exitosamente!"
+
+            echo "✅ ¡Despliegue a Producción completado exitosamente..!"
