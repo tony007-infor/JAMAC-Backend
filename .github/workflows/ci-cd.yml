@@ -109,7 +109,7 @@ jobs:
           rm phoenix-orders-build.zip
 
       # Paso 3: Conectarse por SSH a tu servidor EC2 y respaldar temporalmente tu archivo .env manual
-      - name: Respaldar archivo .env en el Servidor
+      - name: Respaldar .env y Limpiar Directorio
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -117,12 +117,23 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            # Asegura la existencia de la carpeta y los permisos para el usuario ubuntu
+            sudo mkdir -p /var/www/backend
+            sudo chown -R ubuntu:ubuntu /var/www/backend
+
+            # Respalda el .env si ya existía
             if [ -f /var/www/backend/.env ]; then
               cp /var/www/backend/.env /tmp/.env_backup
-              echo "Respaldo del archivo .env guardado en /tmp/.env_backup"
+              echo "Respaldo de .env creado en /tmp/.env_backup"
             else
-              echo "No se encontró un archivo .env previo en el servidor"
+              echo "No se encontró un archivo .env previo."
             fi
+
+            # Limpia los archivos dentro de la carpeta sin borrar la carpeta principal
+            # Esto evita el error de permisos de escritura sobre /var/www (padre)
+            rm -rf /var/www/backend/*
+            rm -rf /var/www/backend/.[!.]* 2>/dev/null || true
+            echo "Directorio de destino limpiado para copia limpia."
 
       # Paso 4: Transferir todos los archivos nuevos descomprimidos al directorio del servidor /var/www/backend mediante SFTP
       - name: Copiar archivos al Servidor EC2
@@ -135,7 +146,7 @@ jobs:
           source: "deploy-package/**"
           target: "/var/www/backend"
           strip_components: 1
-          rm: true
+          rm: false # Se pone en false porque ya limpiamos los archivos por SSH en el paso anterior
 
       # Paso 5: Ejecutar scripts finales de producción en el servidor EC2 por SSH
       - name: Finalizar Despliegue en el Servidor (Post-Deploy)
@@ -148,26 +159,26 @@ jobs:
           script: |
             # Entrar al directorio del proyecto
             cd /var/www/backend
-            
+
             # Restaurar tu archivo .env manual desde el respaldo temporal
             if [ -f /tmp/.env_backup ]; then
               mv /tmp/.env_backup /var/www/backend/.env
               echo "Archivo .env restaurado correctamente en su ubicación."
             fi
-            
+
             # Instalar las librerías optimizadas para producción en el servidor
             if [ -f composer.json ]; then
               composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             fi
-            
+
             # Correr migraciones pendientes en tu base de datos de producción
             php artisan migrate --force
-            
+
             # Limpiar caché de rutas, configuraciones y vistas para recargar cambios
             php artisan optimize:clear
-            
+
             # Ajustar los permisos de escritura necesarios para que Apache/Nginx funcionen
             sudo chown -R www-data:www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
-            
-            echo "✅ ¡Despliegue a Producción completado exitosamente!"
+
+            echo "✅ ¡Despliegue a Producción completado exitosamente..!"
