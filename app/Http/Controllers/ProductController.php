@@ -8,12 +8,24 @@ use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use OpenApi\Attributes as OA;
 
 class ProductController extends Controller
 {
     public function __construct(
         protected ProductService $productService
     ) {}
+
+    #[OA\Get(
+        path: "/api/products",
+        summary: "Obtener lista de productos disponibles",
+        tags: ["Productos"]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: "Lista de productos obtenida con éxito."
+    )]
+    
 
     /**
      * Display a listing of the resource.
