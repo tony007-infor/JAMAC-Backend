@@ -68,27 +68,79 @@ jobs:
           path: phoenix-orders-build.zip
           retention-days: 14
 
-  deploy-dev:
-    name: Deploy a DEV (simulado)
+  deploy-production:
+    name: Despliegue a Producción (EC2)
     needs: build-and-test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar Artifact generado
+      - name: Descargar Artifact de Compilación
         uses: actions/download-artifact@v4
         with:
           name: phoenix-orders-artifact
+          path: deploy-package
 
-      - name: Simular despliegue a DEV
+      - name: Descomprimir Artifact
         run: |
-          echo "===================================="
-          echo " Desplegando Phoenix-Orders a DEV"
-          echo "===================================="
-          echo "Artifact recibido: phoenix-orders-build.zip"
-          ls -lh phoenix-orders-build.zip
-          echo "Copiando archivos al servidor DEV (simulado)..."
-          sleep 2
-          echo "Reiniciando servicios en DEV (simulado)..."
-          sleep 1
-          echo "✅ Deploy a DEV completado exitosamente"
+          cd deploy-package
+          unzip phoenix-orders-build.zip
+          rm phoenix-orders-build.zip
+
+      - name: Respaldar archivo .env en el Servidor
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            if [ -f /var/www/backend/.env ]; then
+              cp /var/www/backend/.env /tmp/.env_backup
+              echo "Respaldo de .env creado en /tmp/.env_backup"
+            else
+              echo "No se encontró un archivo .env previo en /var/www/backend/"
+            fi
+
+      - name: Copiar archivos al Servidor EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "deploy-package/**"
+          target: "/var/www/backend"
+          strip_components: 1
+          rm: true
+
+      - name: Finalizar Despliegue en el Servidor (Post-Deploy)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /var/www/backend
+            
+            # Restaurar .env si existía un respaldo
+            if [ -f /tmp/.env_backup ]; then
+              mv /tmp/.env_backup /var/www/backend/.env
+              echo "Archivo .env restaurado con éxito."
+            fi
+            
+            # Instalar dependencias de producción
+            if [ -f composer.json ]; then
+              composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+            fi
+            
+            # Correr migraciones y refrescar caché
+            php artisan migrate --force
+            php artisan optimize:clear
+            
+            # Ajustar permisos para Apache/Nginx (www-data)
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+            
+            echo "✅ ¡Despliegue a Producción completado exitosamente!"
