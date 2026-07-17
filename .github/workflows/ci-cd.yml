@@ -1,7 +1,7 @@
 # Nombre del flujo de trabajo en GitHub Actions
 name: CI/CD Phoenix Orders
 
-# DEFINICIÓN DE DETONADORES (TRIGGERS): Cuándo se debe ejecutar este flujo
+# DEFINICIÓN DE DETONADORES: Cuándo se debe ejecutar este flujo
 on:
   push:
     # Se ejecuta automáticamente al hacer push en estas ramas
@@ -84,7 +84,7 @@ jobs:
           retention-days: 14
 
 
-  # TRABAJO 2: DESPLIEGUE CONTINUO EN PRODUCCIÓN (CD)
+  # TRABAJO 2: DESPLIEGUE CONTINUO  (CD)
   deploy-production:
     name: Despliegue a Producción (EC2)
     # Exige que el trabajo 1 (Build y Test) pase exitosamente en verde
