@@ -13,6 +13,10 @@ use OpenApi\Attributes as OA;
     url: "http://localhost:8000",
     description: "Servidor de Desarrollo Local"
 )]
+#[OA\Server(
+    url: "http://3.17.70.189:8000", 
+    description: "Servidor de Producción (AWS EC2)"
+)]
 abstract class Controller
 {
     //
