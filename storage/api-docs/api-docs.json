@@ -1,0 +1,99 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Phoenix Orders - API JAMAC",
+        "description": "Documentación de la API para la gestión de Clientes, Productos y Pedidos.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000",
+            "description": "Servidor de Desarrollo Local"
+        }
+    ],
+    "paths": {
+        "/api/customers": {
+            "get": {
+                "tags": [
+                    "Clientes"
+                ],
+                "summary": "Obtener lista de clientes",
+                "operationId": "2b23ac696cfd81c23807c2c1fd63b0b0",
+                "responses": {
+                    "200": {
+                        "description": "Lista de clientes devuelta con éxito."
+                    },
+                    "500": {
+                        "description": "Error interno del servidor."
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Clientes"
+                ],
+                "summary": "Registrar un nuevo cliente",
+                "description": "Store a newly created resource in storage.",
+                "operationId": "428d5533c8386f91d2baf4de69f01468",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Juan Pérez"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "juan.perez@example.com"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "+59171234567"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Cliente creado exitosamente."
+                    }
+                }
+            }
+        },
+        "/api/products": {
+            "get": {
+                "tags": [
+                    "Productos"
+                ],
+                "summary": "Obtener lista de productos disponibles",
+                "description": "Display a listing of the resource.",
+                "operationId": "1bfaa78d1c2c3848ab8165c5dadcad3e",
+                "responses": {
+                    "200": {
+                        "description": "Lista de productos obtenida con éxito."
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Clientes",
+            "description": "Clientes"
+        },
+        {
+            "name": "Productos",
+            "description": "Productos"
+        }
+    ]
+}

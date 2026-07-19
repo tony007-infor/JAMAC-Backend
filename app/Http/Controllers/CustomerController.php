@@ -8,6 +8,20 @@ use App\Models\Customer;
 use App\Services\CustomerService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use OpenApi\Attributes as OA;
+
+/**
+ * @OA\Info(
+ *     title="Phoenix Orders - API JAMAC",
+ *     version="1.0.0",
+ *     description="Documentación de la API para la gestión de Clientes, Productos y Pedidos."
+ * )
+ * @OA\Server(
+ *     url="http://localhost:8000",
+ *     description="Servidor de Desarrollo Local"
+ * )
+ */
+
 
 class CustomerController extends Controller
 {
@@ -15,9 +29,20 @@ class CustomerController extends Controller
         protected CustomerService $customerService
     ) {}
 
-    /**
-     * Display a listing of the resource.
-     */
+    #[OA\Get(
+        path: "/api/customers",
+        summary: "Obtener lista de clientes",
+        tags: ["Clientes"]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: "Lista de clientes devuelta con éxito."
+    )]
+    #[OA\Response(
+        response: 500,
+        description: "Error interno del servidor."
+    )]
+
     public function index(Request $request): JsonResponse
     {
         $search = $request->input('search');
@@ -33,6 +58,27 @@ class CustomerController extends Controller
     {
         return response()->json($customer);
     }
+
+    #[OA\Post(
+        path: "/api/customers",
+        summary: "Registrar un nuevo cliente",
+        tags: ["Clientes"]
+    )]
+    #[OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ["name", "email"],
+            properties: [
+                new OA\Property(property: "name", type: "string", example: "Juan Pérez"),
+                new OA\Property(property: "email", type: "string", example: "juan.perez@example.com"),
+                new OA\Property(property: "phone", type: "string", example: "+59171234567")
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 201,
+        description: "Cliente creado exitosamente."
+    )]
 
     /**
      * Store a newly created resource in storage.
