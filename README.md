@@ -66,4 +66,4 @@ Si quieres verificar que todo el sistema de stock, transacciones y lógica de ne
 ```bash
 ./vendor/bin/phpunit
 ```
-Todos los tests deben marcarse en color verde (Passed).
+Todos los tests deben marcarse en color verd (Passed).
