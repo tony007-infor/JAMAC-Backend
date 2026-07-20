@@ -1,6 +1,6 @@
 # Phoenix Orders - Backend API (Laravel 11)
 
-Este es el servidor API del sistema Phoenix Orders, desarrollado con Laravel 11. Se encarga de procesar la lógica de negocio, reglas de stock con bloqueos concurrentes y transacciones seguras en base de datos.
+Este es el servidor API del sistema Phoenix Orders, desarrollado con Laravel . Se encarga de procesar la lógica de negocio, reglas de stock con bloqueos concurrentes y transacciones seguras en base de datos.
 
 ---
 
@@ -53,7 +53,7 @@ php artisan migrate:fresh --seed
 ```
 
 ### 6. Levantar el Servidor de la API
-Arranca el servidor local de Laravel:
+Arranca el servidor Laravel:
 ```bash
 php artisan serve
 ```
