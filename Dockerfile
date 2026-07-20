@@ -27,4 +27,8 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-EXPOSE 80
+# Cambiar el puerto de Apache de 80 a 8000
+RUN sed -i 's/80/8000/g' /etc/apache2/ports.conf \
+    && sed -i 's/:80/:8000/g' /etc/apache2/sites-available/000-default.conf
+
+EXPOSE 8000
