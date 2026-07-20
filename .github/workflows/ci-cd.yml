@@ -58,7 +58,6 @@ jobs:
       - name: Ejecutar pruebas automatizadas
         run: vendor/bin/phpunit
 
-  # TRABAJO 2: Construir la imagen Docker y subirla al registry (ghcr.io)
   build-and-push-image:
     name: Build y Push de Imagen Docker
     needs: build-and-test
@@ -93,7 +92,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # TRABAJO 3: Desplegar la imagen (no el código) al servidor EC2
   deploy-production:
     name: Despliegue a Producción (EC2)
     needs: build-and-push-image
@@ -126,14 +124,14 @@ jobs:
             fi
 
             echo "Descargando la nueva imagen desde el registry..."
-            docker pull ${{ env.IMAGE_NAME }}:latest
+            sudo docker pull ${{ env.IMAGE_NAME }}:latest
 
             echo "Deteniendo el contenedor anterior (si existe)..."
-            docker stop jamac-backend || true
-            docker rm jamac-backend || true
+            sudo docker stop jamac-backend || true
+            sudo docker rm jamac-backend || true
 
             echo "Levantando el contenedor nuevo..."
-            docker run -d \
+            sudo docker run -d \
               --name jamac-backend \
               -p 8000:80 \
               --env-file /var/www/backend/.env \
@@ -143,10 +141,10 @@ jobs:
             sleep 5
 
             echo "Corriendo migraciones dentro del contenedor..."
-            docker exec jamac-backend php artisan migrate --force
-            docker exec jamac-backend php artisan optimize:clear
+            sudo docker exec jamac-backend php artisan migrate --force
+            sudo docker exec jamac-backend php artisan optimize:clear
 
             echo "Limpiando imágenes viejas sin usar..."
-            docker image prune -f
+            sudo docker image prune -f
 
             echo "✅ Despliegue con Docker completado exitosamente"
