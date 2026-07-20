@@ -140,9 +140,10 @@ jobs:
 
             sleep 5
 
-            echo "Corriendo migraciones dentro del contenedor..."
+            echo "Corriendo migraciones y actualizando documentación de Swagger..."
             sudo docker exec jamac-backend php artisan migrate --force
             sudo docker exec jamac-backend php artisan optimize:clear
+            sudo docker exec jamac-backend php artisan l5-swagger:generate
 
             echo "Limpiando imágenes viejas sin usar..."
             sudo docker image prune -f
