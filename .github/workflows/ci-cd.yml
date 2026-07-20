@@ -1,22 +1,19 @@
-# Nombre del flujo de trabajo en GitHub Actions
 name: CI/CD Phoenix Orders
 
-# DEFINICIÓN DE DETONADORES: Cuándo se debe ejecutar este flujo
 on:
   push:
-    # Se ejecuta automáticamente al hacer push en estas ramas
     branches: [ main, tonys, "*/dev" ]
   pull_request:
-    # Se ejecuta al abrir o actualizar un Pull Request hacia la rama main
     branches: [ main ]
 
+env:
+  IMAGE_NAME: ghcr.io/tony007-infor/jamac-backend
+
 jobs:
-  # TRABAJO 1: COMPILACIÓN Y PRUEBAS AUTOMATIZADAS (CI)
   build-and-test:
     name: Build y Test
     runs-on: ubuntu-latest
 
-    # Levanta una base de datos PostgreSQL temporal en la nube de GitHub para correr los tests
     services:
       postgres:
         image: postgres:16
@@ -33,11 +30,9 @@ jobs:
           --health-retries 5
 
     steps:
-      # Paso 1: Descargar el código del repositorio a la máquina virtual del test
       - name: Checkout código
         uses: actions/checkout@v4
 
-      # Paso 2: Instalar y configurar la versión adecuada de PHP y sus extensiones
       - name: Configurar PHP 8.3
         uses: shivammathur/setup-php@v2
         with:
@@ -45,71 +40,68 @@ jobs:
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, gd, zip
           coverage: none
 
-      # Paso 3: Descargar las librerías PHP especificadas en composer.json (Laravel)
       - name: Instalar dependencias PHP
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      # Paso 4: Crear archivo de configuración temporal .env para correr los tests
       - name: Preparar .env para pruebas
         run: cp .env.example .env
 
-      # Paso 5: Generar la llave de seguridad del framework necesaria para que corra
       - name: Generar Application Key
         run: php artisan key:generate
 
-      # Paso 6: Reemplazar los valores del archivo de pruebas phpunit.xml para que conecten a la BD temporal de GitHub
       - name: Ajustar credenciales de test al contenedor de CI
         run: |
           sed -i 's/<env name="DB_DATABASE" value="[^"]*"\/>/<env name="DB_DATABASE" value="phoenix_ci_db"\/>/' phpunit.xml
           sed -i 's/<env name="DB_USERNAME" value="[^"]*"\/>/<env name="DB_USERNAME" value="postgres"\/>/' phpunit.xml
           sed -i 's/<env name="DB_PASSWORD" value="[^"]*"\/>/<env name="DB_PASSWORD" value="ci_test_password"\/>/' phpunit.xml
 
-      # Paso 7: Ejecutar las pruebas unitarias y de integración de la API
       - name: Ejecutar pruebas automatizadas
         run: vendor/bin/phpunit
 
-      # Paso 8: Copiar sólo los archivos necesarios de producción en una carpeta y comprimirlos en un .zip (excluyendo git y temporales)
-      - name: Empaquetar Artifact
-        run: |
-          mkdir artifact-package
-          cp -r app bootstrap config database public resources routes artisan composer.json composer.lock artifact-package/
-          cd artifact-package && zip -r ../phoenix-orders-build.zip . -x "*.git*"
+  # TRABAJO 2: Construir la imagen Docker y subirla al registry (ghcr.io)
+  build-and-push-image:
+    name: Build y Push de Imagen Docker
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-      # Paso 9: Subir el paquete .zip resultante a la nube de GitHub Actions para que lo reciba el trabajo de despliegue
-      - name: Subir Artifact
-        uses: actions/upload-artifact@v4
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login en GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          name: phoenix-orders-artifact
-          path: phoenix-orders-build.zip
-          retention-days: 14
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build y Push de la imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  # TRABAJO 2: DESPLIEGUE CONTINUO  (CD)
+  # TRABAJO 3: Desplegar la imagen (no el código) al servidor EC2
   deploy-production:
     name: Despliegue a Producción (EC2)
-    # Exige que el trabajo 1 (Build y Test) pase exitosamente en verde
-    needs: build-and-test
-    # REGLA DE NEGOCIO: Sólo se ejecuta si el evento fue un push a la rama main
+    needs: build-and-push-image
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
-      # Paso 1: Descargar el archivo .zip empaquetado y aprobado en el trabajo de pruebas
-      - name: Descargar Artifact de Compilación
-        uses: actions/download-artifact@v4
-        with:
-          name: phoenix-orders-artifact
-          path: deploy-package
-
-      # Paso 2: Descomprimir el artefacto en la máquina de despliegue
-      - name: Descomprimir Artifact
-        run: |
-          cd deploy-package
-          unzip phoenix-orders-build.zip
-          rm phoenix-orders-build.zip
-
-      # Paso 3: Conectarse por SSH a tu servidor EC2 y respaldar temporalmente tu archivo .env manual
-      - name: Respaldar .env y Limpiar Directorio
+      - name: Desplegar imagen Docker en el servidor
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -117,68 +109,44 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # Asegura la existencia de la carpeta y los permisos para el usuario ubuntu
-            sudo mkdir -p /var/www/backend
-            sudo chown -R ubuntu:ubuntu /var/www/backend
-
-            # Respalda el .env si ya existía
-            if [ -f /var/www/backend/.env ]; then
-              cp /var/www/backend/.env /tmp/.env_backup
-              echo "Respaldo de .env creado en /tmp/.env_backup"
+            if ! command -v docker &> /dev/null; then
+              echo "Docker no está instalado. Instalando..."
+              sudo apt-get update -y
+              sudo apt-get install -y ca-certificates curl gnupg
+              sudo install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              sudo chmod a+r /etc/apt/keyrings/docker.gpg
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              sudo apt-get update -y
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              sudo usermod -aG docker $USER
+              echo "Docker instalado correctamente."
             else
-              echo "No se encontró un archivo .env previo."
+              echo "Docker ya está instalado, continuando..."
             fi
 
-            # Limpia los archivos dentro de la carpeta sin borrar la carpeta principal
-            # Esto evita el error de permisos de escritura sobre /var/www (padre)
-            rm -rf /var/www/backend/*
-            rm -rf /var/www/backend/.[!.]* 2>/dev/null || true
-            echo "Directorio de destino limpiado para copia limpia."
+            echo "Descargando la nueva imagen desde el registry..."
+            docker pull ${{ env.IMAGE_NAME }}:latest
 
-      # Paso 4: Transferir todos los archivos nuevos descomprimidos al directorio del servidor /var/www/backend mediante SFTP
-      - name: Copiar archivos al Servidor EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          source: "deploy-package/**"
-          target: "/var/www/backend"
-          strip_components: 1
-          rm: false # Se pone en false porque ya limpiamos los archivos por SSH en el paso anterior
+            echo "Deteniendo el contenedor anterior (si existe)..."
+            docker stop jamac-backend || true
+            docker rm jamac-backend || true
 
-      # Paso 5: Ejecutar scripts finales de producción en el servidor EC2 por SSH
-      - name: Finalizar Despliegue en el Servidor (Post-Deploy)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
-            # Entrar al directorio del proyecto
-            cd /var/www/backend
+            echo "Levantando el contenedor nuevo..."
+            docker run -d \
+              --name jamac-backend \
+              -p 8000:80 \
+              --env-file /var/www/backend/.env \
+              --restart unless-stopped \
+              ${{ env.IMAGE_NAME }}:latest
 
-            # Restaurar tu archivo .env manual desde el respaldo temporal
-            if [ -f /tmp/.env_backup ]; then
-              mv /tmp/.env_backup /var/www/backend/.env
-              echo "Archivo .env restaurado correctamente en su ubicación."
-            fi
+            sleep 5
 
-            # Instalar las librerías optimizadas para producción en el servidor
-            if [ -f composer.json ]; then
-              composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
-            fi
+            echo "Corriendo migraciones dentro del contenedor..."
+            docker exec jamac-backend php artisan migrate --force
+            docker exec jamac-backend php artisan optimize:clear
 
-            # Correr migraciones pendientes en tu base de datos de producción
-            php artisan migrate --force
+            echo "Limpiando imágenes viejas sin usar..."
+            docker image prune -f
 
-            # Limpiar caché de rutas, configuraciones y vistas para recargar cambios
-            php artisan optimize:clear
-
-            # Ajustar los permisos de escritura necesarios para que Apache/Nginx funcionen
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
-
-            echo "✅ ¡Despliegue a Producción completado exitosamente..!"
+            echo "✅ Despliegue con Docker completado exitosamente"
