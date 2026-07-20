@@ -107,6 +107,22 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            echo "=== DIAGNÓSTICO: buscando la base de datos ==="
+            echo "--- Contenido relevante del .env actual ---"
+            grep "DB_" /var/www/backend/.env || echo "No se encontró .env en esa ruta"
+
+            echo "--- ¿Hay contenedores Docker corriendo? ---"
+            sudo docker ps -a 2>/dev/null || echo "Docker no responde o no hay contenedores"
+
+            echo "--- ¿Postgres corre como servicio nativo del sistema? ---"
+            sudo systemctl status postgresql --no-pager 2>/dev/null || echo "No hay servicio postgresql nativo"
+
+            echo "--- ¿Qué proceso escucha en el puerto 5432? ---"
+            sudo ss -tlnp | grep 5432 || echo "Nada escuchando en 5432"
+
+            echo "=== FIN DIAGNÓSTICO ==="
+            echo ""
+
             if ! command -v docker &> /dev/null; then
               echo "Docker no está instalado. Instalando..."
               sudo apt-get update -y
