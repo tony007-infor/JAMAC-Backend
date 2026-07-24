@@ -10,6 +10,36 @@ env:
   IMAGE_NAME: ghcr.io/tony007-infor/jamac-backend
 
 jobs:
+  # ==========================================
+  # 1: AUDITORÍA DE SEGURIDAD (ESTÁTICA)
+  # ==========================================
+  security-audit:
+    name: DevSecOps - Linter & Secret Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # 1. Hadolint: Linter para el Dockerfile
+      - name: Run Hadolint (Dockerfile Linter)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error
+
+      # 2. Trivy Secrets: Escaneo de credenciales en el código fuente
+      - name: Run Trivy Secret Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scanners: 'secret'
+          skip-dirs: 'vendor'
+          exit-code: '1'
+
+  # ==========================================
+  #  2: PRUEBAS AUTOMATIZADAS (PHPUnit)
+  # ==========================================
   build-and-test:
     name: Build y Test
     runs-on: ubuntu-latest
@@ -58,9 +88,12 @@ jobs:
       - name: Ejecutar pruebas automatizadas
         run: vendor/bin/phpunit
 
+  # ==========================================
+  # 3: CONSTRUCCIÓN, ESCANEO Y PUSH DE IMAGEN
+  # ==========================================
   build-and-push-image:
     name: Build y Push de Imagen Docker
-    needs: build-and-test
+    needs: [security-audit, build-and-test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -81,7 +114,40 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build y Push de la imagen
+      # Compilar la imagen localmente para poder escanearla antes de publicar
+      - name: Build local de la imagen para análisis
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:temp-scan
+          cache-from: type=gha
+
+      # 3. Trivy Image: Escaneo de vulnerabilidades en la imagen Docker
+      - name: Run Trivy Image Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: '${{ env.IMAGE_NAME }}:temp-scan'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+      # 4. Syft: Generación de SBOM
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: '${{ env.IMAGE_NAME }}:temp-scan'
+          format: 'spdx-json'
+          output-file: 'sbom.json'
+
+      - name: Subir SBOM como Artefacto de GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-manifest
+          path: sbom.json
+
+      # Push final a GitHub Container Registry si todas las pruebas pasaron
+      - name: Push de la imagen a GHCR
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -92,6 +158,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # ==========================================
+  # 4: DESPLIEGUE A EC2
+  # ==========================================        
   deploy-production:
     name: Despliegue a Producción (EC2)
     needs: build-and-push-image
