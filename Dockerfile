@@ -1,40 +1,48 @@
+# ==========================================
+# ETAPA 1: Construcción (Builder)
+# ==========================================
+FROM composer:2 AS vendor
+WORKDIR /app
+
+# Copiar dependencias y ejecutarlas sin requerir la base de datos de PHP local
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
+
+# Copiar el código fuente y generar el autoload optimizado
+COPY . .
+RUN composer dump-autoload --optimize
+
+# ==========================================
+# ETAPA 2:Imagen final
+# ==========================================
 FROM php:8.3-apache
 
-# Instalar dependencias del sistema y extensiones de PHP necesarias
-RUN apt-get update && apt-get install -y \
-    git unzip libpq-dev libzip-dev libpng-dev \
+# 1. Instalar SOLO lo necesario
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev libzip-dev libpng-dev \
     && docker-php-ext-install pdo pdo_pgsql pgsql zip gd \
-    && a2enmod rewrite
-
-# Instalar Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+    && a2enmod rewrite \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 
-# Copiar únicamente los archivos de dependencias primero (aprovecha la cache de Docker)
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+# 2. Traer el código limpio y listo desde la Etapa 1
+COPY --from=vendor /app /var/www/html
 
-# Copiar el resto del código de la aplicación
-COPY . .
-
-RUN composer dump-autoload --optimize \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+# 3. Asignar permisos seguros para Laravel
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Apache debe servir desde la carpeta public/ de Laravel
+# 4. Configurar el puerto y el DocumentRoot de Apache
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
-
-# Permitir que Laravel use su .htaccess para el enrutamiento (necesario para que funcionen las rutas)
-RUN echo '<Directory /var/www/html/public>\n\
+    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf \
+    && echo '<Directory /var/www/html/public>\n\
     AllowOverride All\n\
     Require all granted\n\
-</Directory>' >> /etc/apache2/apache2.conf
-
-# Cambiar el puerto de Apache de 80 a 8000
-RUN sed -i 's/80/8000/g' /etc/apache2/ports.conf \
+</Directory>' >> /etc/apache2/apache2.conf \
+    && sed -i 's/80/8000/g' /etc/apache2/ports.conf \
     && sed -i 's/:80/:8000/g' /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 8000
