@@ -5,3 +5,4 @@ vendor
 storage/logs/*
 tests
 .github
+.cache
