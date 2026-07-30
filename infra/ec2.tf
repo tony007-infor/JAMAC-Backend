@@ -52,6 +52,9 @@ resource "aws_instance" "backend" {
   key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.backend_sg.id]
 
+  # Fuerza a recrear la instancia si cambia el script de arranque
+  user_data_replace_on_change = true
+
   root_block_device {
     volume_size = 20
     volume_type = "gp3"
