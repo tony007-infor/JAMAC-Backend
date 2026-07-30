@@ -63,6 +63,7 @@ resource "aws_instance" "backend" {
   # Instala y configura PostgreSQL automaticamente al arrancar la maquina
   user_data = <<-EOF
     #!/bin/bash
+    # v2 - instala postgres
     set -e
     apt-get update -y
     apt-get install -y postgresql postgresql-contrib
