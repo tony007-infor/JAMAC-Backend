@@ -295,3 +295,4 @@ jobs:
             sudo docker image prune -f
 
             echo "✅ Despliegue con Docker completado exitosamente"
+            
