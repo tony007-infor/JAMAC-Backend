@@ -46,6 +46,7 @@ resource "aws_security_group" "backend_sg" {
   }
 }
 
+
 resource "aws_instance" "backend" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.instance_type
@@ -79,4 +80,17 @@ resource "aws_instance" "backend" {
   tags = {
     Name = var.app_name
   }
+  
+}
+resource "aws_eip" "backend" {
+  domain = "vpc"
+
+  tags = {
+    Name = "${var.app_name}-eip"
+  }
+}
+
+resource "aws_eip_association" "backend" {
+  instance_id   = aws_instance.backend.id
+  allocation_id = aws_eip.backend.id
 }
