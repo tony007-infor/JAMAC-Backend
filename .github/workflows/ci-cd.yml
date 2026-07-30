@@ -248,6 +248,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            echo "Esperando a que cloud-init termine de configurar el servidor..."
+            sudo cloud-init status --wait
             if ! command -v docker &> /dev/null; then
               echo "Docker no está instalado. Instalando..."
               sudo apt-get update -y
@@ -295,4 +297,4 @@ jobs:
             sudo docker image prune -f
 
             echo "✅ Despliegue con Docker completado exitosamente"
-            
+
