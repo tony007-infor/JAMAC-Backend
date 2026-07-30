@@ -57,6 +57,21 @@ resource "aws_instance" "backend" {
     volume_type = "gp3"
   }
 
+  # Instala y configura PostgreSQL automaticamente al arrancar la maquina
+  user_data = <<-EOF
+    #!/bin/bash
+    set -e
+    apt-get update -y
+    apt-get install -y postgresql postgresql-contrib
+
+    systemctl enable postgresql
+    systemctl start postgresql
+
+    sudo -u postgres psql -c "CREATE ROLE laravel_user WITH LOGIN PASSWORD '${var.db_password}';"
+    sudo -u postgres psql -c "CREATE DATABASE laravel_db OWNER laravel_user;"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE laravel_db TO laravel_user;"
+  EOF
+
   tags = {
     Name = var.app_name
   }

@@ -198,7 +198,8 @@ jobs:
       - name: Terraform Apply
         run: |
           terraform apply -auto-approve \
-            -var="aws_region=${{ secrets.AWS_REGION }}"
+              -var="aws_region=${{ secrets.AWS_REGION }}" \
+            -var="db_password=${{ secrets.DB_PASSWORD }}"
 
       - name: Exportar IP publica
         id: tf-output
@@ -214,6 +215,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Esperar a que el servidor este listo (SSH)
+        run: |
+          echo "Esperando que ${{ needs.provision-infra.outputs.public_ip }} responda en el puerto 22..."
+          for i in $(seq 1 20); do
+            if nc -z -w3 ${{ needs.provision-infra.outputs.public_ip }} 22; then
+              echo "SSH listo."
+              break
+            fi
+            echo "Intento $i/20, esperando 10s..."
+            sleep 10
+          done
+
+      - name: Preparar archivo .env
+        run: echo "${{ secrets.BACKEND_ENV_FILE }}" > backend.env
+
+      - name: Copiar .env al servidor
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ needs.provision-infra.outputs.public_ip }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "backend.env"
+          target: "/tmp/"
+
       - name: Desplegar imagen Docker en el servidor
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -238,6 +264,11 @@ jobs:
               echo "Docker ya está instalado, continuando..."
             fi
 
+            echo "Configurando variables de entorno..."
+            sudo mkdir -p /var/www/backend
+            sudo mv /tmp/backend.env /var/www/backend/.env
+            sudo chmod 600 /var/www/backend/.env
+
             echo "Descargando la nueva imagen desde el registry..."
             sudo docker pull ${{ env.IMAGE_NAME }}:latest
 
@@ -253,7 +284,7 @@ jobs:
               --restart unless-stopped \
               ${{ env.IMAGE_NAME }}:latest
 
-            sleep 5
+            sleep 10
 
             echo "Corriendo migraciones y actualizando documentación de Swagger..."
             sudo docker exec jamac-backend php artisan migrate --force

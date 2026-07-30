@@ -20,3 +20,9 @@ variable "app_name" {
   type        = string
   default     = "jamac-backend"
 }
+
+variable "db_password" {
+  description = "Password de la base de datos que Terraform configura en la EC2"
+  type        = string
+  sensitive   = true
+}
