@@ -267,6 +267,7 @@ jobs:
             echo "Configurando variables de entorno..."
             sudo mkdir -p /var/www/backend
             sudo mv /tmp/backend.env /var/www/backend/.env
+            sudo chown $USER:$USER /var/www/backend/.env
             sudo chmod 600 /var/www/backend/.env
 
             echo "Creando/Actualizando secreto de Kubernetes para las variables de entorno..."
@@ -275,6 +276,9 @@ jobs:
             echo "Aplicando manifiestos de Kubernetes..."
             kubectl apply -f kubernetes/backend-deployment.yaml
             kubectl apply -f kubernetes/backend-service.yaml
+
+            echo "Reiniciando el despliegue del backend para forzar la carga de las nuevas variables..."
+            kubectl rollout restart deployment/jamac-backend
 
             echo "Esperando a que el despliegue de Kubernetes esté listo..."
             kubectl rollout status deployment/jamac-backend --timeout=180s
