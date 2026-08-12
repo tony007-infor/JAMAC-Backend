@@ -15,6 +15,7 @@ spec:
       labels:
         app: jamac-backend
     spec:
+      hostNetwork: true
       containers:
       - name: jamac-backend
         image: ghcr.io/tony007-infor/jamac-backend:latest
